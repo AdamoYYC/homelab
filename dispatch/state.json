@@ -3,6 +3,10 @@
     "000-selftest": {
       "filename": "000-selftest.md",
       "processed_at": "2026-10-22T11:33:54-06:00"
+    },
+    "001-sts-harvester": {
+      "filename": "001-sts-harvester.md",
+      "processed_at": "2026-10-22T11:42:41-06:00"
     }
   }
 }
