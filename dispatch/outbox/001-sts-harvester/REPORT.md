@@ -2,53 +2,22 @@
 
 Date: 2026-10-22
 
-## Environment and power settings
+## Environment and power
 
-- Work folder: C:\RockyDispatch\work\001-sts-harvester\STS-Harvester
-- Chrome executable exists at C:\Program Files\Google\Chrome\Application\chrome.exe; the requested profile directory exists at C:\Users\vitos\AppData\Local\Google\Chrome\User Data.
-- No Chrome process was returned by Get-Process chrome, DevTools at http://127.0.0.1:9222/json/version refused the connection, and Computer Use inventory returned apps: [], browsers: [].
-- Attempted the supported Computer Use launch call. It failed exactly with: Cannot read properties of undefined (reading 'launch_app'). This session cannot control or attach to the owner's Chrome.
-- Initial powercfg /query SCHEME_CURRENT SUB_SLEEP STANDBYIDLE was saved to power-settings-backup.txt. It showed AC sleep timeout 600 seconds (0x258) and DC timeout 300 seconds (0x12c).
-- Attempted powercfg /change standby-timeout-ac 0; Windows returned: You do not have the permissions required to perform this action. Exit code was 1. Read-back still showed AC 0x258 and DC 0x12c. No power setting was changed.
+- Python 3.12.14 was available in the existing Codex runtime; no separate Python installation was needed. Created `.venv` in this project and installed all packages from `requirements.txt` successfully (`faster-whisper 1.2.1`, `requests 2.34.2`, `websocket-client 1.9.2`, and dependencies).
+- The Gyan FFmpeg 9.0.2 package was already registered by WinGet. Its WinGet link could not launch in the sandbox, but the package binary ran directly: `C:\Users\vitos\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build\bin\ffmpeg.exe`.
+- Before the power change, the current Balanced plan showed AC sleep after 600 seconds (`0x258`) and DC sleep after 300 seconds (`0x12c`). That query was saved in `power-settings-backup.txt` before changing anything.
+- `powercfg /change standby-timeout-ac 0` succeeded (exit 0). Read-back shows AC sleep timeout `0` (never); DC remains 300 seconds (`0x12c`).
 
-## Built
+## Chrome and pipeline run
 
-- lessons.txt: seeded with the requested proven medias lesson.
-- harvest.py: uses Chrome DevTools Protocol to navigate lessons and save URL, full observed request headers, response details, and medias/memberships classification in captures/<slug>.json.
-- download.py: invokes ffmpeg for medias captures; for memberships captures, makes one GET with the captured header set, does not follow redirects, and appends the exact HTTP result or request error to captures/memberships-test.log.
-- transcribe.py: converts MP3 to 16 kHz mono WAV with ffmpeg, decodes float32 samples with ffmpeg, and transcribes with faster-whisper base on CPU int8.
-- requirements.txt and README.txt: Python package list and runtime note.
+- `harvest.py` was run first. It launched Chrome 155 with the owner's real profile directory `C:\Users\vitos\AppData\Local\Google\Chrome\User Data` and `--remote-debugging-port=9222`. Chrome opened, but the DevTools endpoint at `127.0.0.1:9222` remained connection-refused; the script exited 1 after its 30-second startup wait. No lesson navigation or capture was completed.
+- `download.py` was run second and exited 0. There was no capture JSON, so no audio was downloaded.
+- `transcribe.py` was run third and exited 0. There was no MP3, so no transcript was produced. It initialized the base model but had no audio input to transcribe.
+- `lessons.txt` contains only the seeded lesson. No memberships-kind request was observed and no memberships lesson was available to probe.
+- No capture JSON, browser headers/cookies, audio, or transcript was copied to the repository outbox.
 
-## Run instructions
+## Outbox and remaining blocker
 
-From the STS-Harvester directory in a normal local Windows session with access to the owner's Chrome profile:
-
-1. Install Python and ffmpeg if needed. Make sure ffmpeg is on PATH.
-2. Create a venv and install dependencies:
-   py -m venv .venv
-   .\.venv\Scripts\python -m pip install -r requirements.txt
-3. Run .\.venv\Scripts\python harvest.py, then .\.venv\Scripts\python download.py, then .\.venv\Scripts\python transcribe.py.
-4. Find request captures under captures\, audio under audio\, transcripts under transcripts\, and the memberships probe log at captures\memberships-test.log.
-
-The default Chrome executable and profile paths are defined in harvest.py; override them with STS_CHROME and STS_CHROME_PROFILE if necessary.
-
-## Proof run
-
-Not completed. No transcript was produced, so there is no proof transcript path or first-five-line excerpt to report. The browser automation could not access the owner's Chrome session, and this session could not start the local pipeline:
-
-- python --version failed because C:\Users\vitos\AppData\Local\Microsoft\WindowsApps\python.exe could not be accessed.
-- py --version failed because py is not recognized.
-- ffmpeg -version failed because C:\Users\vitos\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe was denied access.
-
-Pip installation and faster-whisper model download were not attempted because no usable Python runtime was available. No network-download failure was observed or inferred.
-
-## Memberships lead test
-
-No memberships lesson URL was available to test. Chrome could not be opened or inspected, and lessons.txt contains only the supplied medias lesson. No memberships replay was made.
-
-## Blockers and changes outside the project
-
-- Windows denied the requested AC sleep setting change; the original values remain in effect.
-- This dispatched session has no available Chrome browser/app session and its Computer Use launcher is unavailable.
-- Python and ffmpeg launchers are inaccessible in this session; consequently no capture, download, or transcription proof run could happen.
-- The required report and project source files were staged in C:\RockyDispatch\repo\dispatch\outbox\001-sts-harvester\. No capture JSON, access token, audio, or transcript was staged. No browser/account data or files outside the project and required outbox were changed.
+- The updated report is copied to `C:\RockyDispatch\repo\dispatch\outbox\001-sts-harvester\REPORT.md` for commit and push.
+- No transcript exists yet, so there is no first-five-line excerpt to provide. Chrome's real-profile DevTools endpoint must be made available for `harvest.py` to capture the seeded lesson before the remaining media and transcription results can exist.
