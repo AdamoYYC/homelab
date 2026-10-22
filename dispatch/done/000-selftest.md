@@ -1,0 +1,1 @@
+Write a file named SELFTEST.txt in your current work directory containing the text `SELFTEST_OK` followed by the current local date and time. Print the exact contents of the file.
